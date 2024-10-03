@@ -62,3 +62,37 @@ Instruction --> Function + Addressing Mode + Clock Cycles
 3. Read Remaining Intruction Bytes
 4. Execute
 5. Wait/Count Cycles
+
+
+#### Implementation
+##### Bus
+- A bus would require basic read and write protocols that can be used by the cpu to read and write to memory. It would also require clock and reset signals.
+- A cartridge is inserted to the bus so that functionality would also be defined here. Similiarily lets add 2kB of RAM as an array for basic simulation.
+###### Features
+- 16 bit Addressing
+- 2kB RAM
+- 8 bit Data    
+
+##### CPU
+- Status Registers, Core registers and basic interrupts.
+- Bus connection Function
+- Flag toggling functions
+- Address, cpu cycles, opcodes, fetched data and temp data variables for funrther usage.
+- Read, Write and fetch functions
+- Instruction structure that whould consist of opcode, addressing mode and cycles required for execution
+- Instruction lookup table
+- Addressing modes Definition
+- Opcode definition
+
+###### Features
+- 6 core registers
+- 56 valid instructions
+- 12 addressing modes
+
+###### Memorymap
+
+![](assets/cpu-memorymap.png)
+
+- $0000-$00FF = Zero Page
+- $0100-$01FF = System Stack
+- $FFFA-$FFFF = Non-maskable interrupt handler/ Reset/ Interrupt Request Handler

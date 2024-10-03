@@ -1,0 +1,287 @@
+#include "cpu.h"
+#include "bus.h"
+#include <cstdint>
+
+// Constructor and Deconstructor
+cpu6502::cpu6502() {
+    using a = cpu6502;
+    lookup = {
+		{ "BRK", &a::BRK, &a::IMP, 7 },{ "ORA", &a::ORA, &a::IZX, 6 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "???", &a::NOP, &a::IMP, 3 },{ "ORA", &a::ORA, &a::ZP0, 3 },{ "ASL", &a::ASL, &a::ZP0, 5 },{ "???", &a::XXX, &a::IMP, 5 },{ "PHP", &a::PHP, &a::IMP, 3 },{ "ORA", &a::ORA, &a::IMM, 2 },{ "ASL", &a::ASL, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::NOP, &a::IMP, 4 },{ "ORA", &a::ORA, &a::ABS, 4 },{ "ASL", &a::ASL, &a::ABS, 6 },{ "???", &a::XXX, &a::IMP, 6 },
+		{ "BPL", &a::BPL, &a::REL, 2 },{ "ORA", &a::ORA, &a::IZY, 5 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "???", &a::NOP, &a::IMP, 4 },{ "ORA", &a::ORA, &a::ZPX, 4 },{ "ASL", &a::ASL, &a::ZPX, 6 },{ "???", &a::XXX, &a::IMP, 6 },{ "CLC", &a::CLC, &a::IMP, 2 },{ "ORA", &a::ORA, &a::ABY, 4 },{ "???", &a::NOP, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 7 },{ "???", &a::NOP, &a::IMP, 4 },{ "ORA", &a::ORA, &a::ABX, 4 },{ "ASL", &a::ASL, &a::ABX, 7 },{ "???", &a::XXX, &a::IMP, 7 },
+		{ "JSR", &a::JSR, &a::ABS, 6 },{ "AND", &a::AND, &a::IZX, 6 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "BIT", &a::BIT, &a::ZP0, 3 },{ "AND", &a::AND, &a::ZP0, 3 },{ "ROL", &a::ROL, &a::ZP0, 5 },{ "???", &a::XXX, &a::IMP, 5 },{ "PLP", &a::PLP, &a::IMP, 4 },{ "AND", &a::AND, &a::IMM, 2 },{ "ROL", &a::ROL, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 2 },{ "BIT", &a::BIT, &a::ABS, 4 },{ "AND", &a::AND, &a::ABS, 4 },{ "ROL", &a::ROL, &a::ABS, 6 },{ "???", &a::XXX, &a::IMP, 6 },
+		{ "BMI", &a::BMI, &a::REL, 2 },{ "AND", &a::AND, &a::IZY, 5 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "???", &a::NOP, &a::IMP, 4 },{ "AND", &a::AND, &a::ZPX, 4 },{ "ROL", &a::ROL, &a::ZPX, 6 },{ "???", &a::XXX, &a::IMP, 6 },{ "SEC", &a::SEC, &a::IMP, 2 },{ "AND", &a::AND, &a::ABY, 4 },{ "???", &a::NOP, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 7 },{ "???", &a::NOP, &a::IMP, 4 },{ "AND", &a::AND, &a::ABX, 4 },{ "ROL", &a::ROL, &a::ABX, 7 },{ "???", &a::XXX, &a::IMP, 7 },
+		{ "RTI", &a::RTI, &a::IMP, 6 },{ "EOR", &a::EOR, &a::IZX, 6 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "???", &a::NOP, &a::IMP, 3 },{ "EOR", &a::EOR, &a::ZP0, 3 },{ "LSR", &a::LSR, &a::ZP0, 5 },{ "???", &a::XXX, &a::IMP, 5 },{ "PHA", &a::PHA, &a::IMP, 3 },{ "EOR", &a::EOR, &a::IMM, 2 },{ "LSR", &a::LSR, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 2 },{ "JMP", &a::JMP, &a::ABS, 3 },{ "EOR", &a::EOR, &a::ABS, 4 },{ "LSR", &a::LSR, &a::ABS, 6 },{ "???", &a::XXX, &a::IMP, 6 },
+		{ "BVC", &a::BVC, &a::REL, 2 },{ "EOR", &a::EOR, &a::IZY, 5 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "???", &a::NOP, &a::IMP, 4 },{ "EOR", &a::EOR, &a::ZPX, 4 },{ "LSR", &a::LSR, &a::ZPX, 6 },{ "???", &a::XXX, &a::IMP, 6 },{ "CLI", &a::CLI, &a::IMP, 2 },{ "EOR", &a::EOR, &a::ABY, 4 },{ "???", &a::NOP, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 7 },{ "???", &a::NOP, &a::IMP, 4 },{ "EOR", &a::EOR, &a::ABX, 4 },{ "LSR", &a::LSR, &a::ABX, 7 },{ "???", &a::XXX, &a::IMP, 7 },
+		{ "RTS", &a::RTS, &a::IMP, 6 },{ "ADC", &a::ADC, &a::IZX, 6 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "???", &a::NOP, &a::IMP, 3 },{ "ADC", &a::ADC, &a::ZP0, 3 },{ "ROR", &a::ROR, &a::ZP0, 5 },{ "???", &a::XXX, &a::IMP, 5 },{ "PLA", &a::PLA, &a::IMP, 4 },{ "ADC", &a::ADC, &a::IMM, 2 },{ "ROR", &a::ROR, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 2 },{ "JMP", &a::JMP, &a::IND, 5 },{ "ADC", &a::ADC, &a::ABS, 4 },{ "ROR", &a::ROR, &a::ABS, 6 },{ "???", &a::XXX, &a::IMP, 6 },
+		{ "BVS", &a::BVS, &a::REL, 2 },{ "ADC", &a::ADC, &a::IZY, 5 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "???", &a::NOP, &a::IMP, 4 },{ "ADC", &a::ADC, &a::ZPX, 4 },{ "ROR", &a::ROR, &a::ZPX, 6 },{ "???", &a::XXX, &a::IMP, 6 },{ "SEI", &a::SEI, &a::IMP, 2 },{ "ADC", &a::ADC, &a::ABY, 4 },{ "???", &a::NOP, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 7 },{ "???", &a::NOP, &a::IMP, 4 },{ "ADC", &a::ADC, &a::ABX, 4 },{ "ROR", &a::ROR, &a::ABX, 7 },{ "???", &a::XXX, &a::IMP, 7 },
+		{ "???", &a::NOP, &a::IMP, 2 },{ "STA", &a::STA, &a::IZX, 6 },{ "???", &a::NOP, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 6 },{ "STY", &a::STY, &a::ZP0, 3 },{ "STA", &a::STA, &a::ZP0, 3 },{ "STX", &a::STX, &a::ZP0, 3 },{ "???", &a::XXX, &a::IMP, 3 },{ "DEY", &a::DEY, &a::IMP, 2 },{ "???", &a::NOP, &a::IMP, 2 },{ "TXA", &a::TXA, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 2 },{ "STY", &a::STY, &a::ABS, 4 },{ "STA", &a::STA, &a::ABS, 4 },{ "STX", &a::STX, &a::ABS, 4 },{ "???", &a::XXX, &a::IMP, 4 },
+		{ "BCC", &a::BCC, &a::REL, 2 },{ "STA", &a::STA, &a::IZY, 6 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 6 },{ "STY", &a::STY, &a::ZPX, 4 },{ "STA", &a::STA, &a::ZPX, 4 },{ "STX", &a::STX, &a::ZPY, 4 },{ "???", &a::XXX, &a::IMP, 4 },{ "TYA", &a::TYA, &a::IMP, 2 },{ "STA", &a::STA, &a::ABY, 5 },{ "TXS", &a::TXS, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 5 },{ "???", &a::NOP, &a::IMP, 5 },{ "STA", &a::STA, &a::ABX, 5 },{ "???", &a::XXX, &a::IMP, 5 },{ "???", &a::XXX, &a::IMP, 5 },
+		{ "LDY", &a::LDY, &a::IMM, 2 },{ "LDA", &a::LDA, &a::IZX, 6 },{ "LDX", &a::LDX, &a::IMM, 2 },{ "???", &a::XXX, &a::IMP, 6 },{ "LDY", &a::LDY, &a::ZP0, 3 },{ "LDA", &a::LDA, &a::ZP0, 3 },{ "LDX", &a::LDX, &a::ZP0, 3 },{ "???", &a::XXX, &a::IMP, 3 },{ "TAY", &a::TAY, &a::IMP, 2 },{ "LDA", &a::LDA, &a::IMM, 2 },{ "TAX", &a::TAX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 2 },{ "LDY", &a::LDY, &a::ABS, 4 },{ "LDA", &a::LDA, &a::ABS, 4 },{ "LDX", &a::LDX, &a::ABS, 4 },{ "???", &a::XXX, &a::IMP, 4 },
+		{ "BCS", &a::BCS, &a::REL, 2 },{ "LDA", &a::LDA, &a::IZY, 5 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 5 },{ "LDY", &a::LDY, &a::ZPX, 4 },{ "LDA", &a::LDA, &a::ZPX, 4 },{ "LDX", &a::LDX, &a::ZPY, 4 },{ "???", &a::XXX, &a::IMP, 4 },{ "CLV", &a::CLV, &a::IMP, 2 },{ "LDA", &a::LDA, &a::ABY, 4 },{ "TSX", &a::TSX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 4 },{ "LDY", &a::LDY, &a::ABX, 4 },{ "LDA", &a::LDA, &a::ABX, 4 },{ "LDX", &a::LDX, &a::ABY, 4 },{ "???", &a::XXX, &a::IMP, 4 },
+		{ "CPY", &a::CPY, &a::IMM, 2 },{ "CMP", &a::CMP, &a::IZX, 6 },{ "???", &a::NOP, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "CPY", &a::CPY, &a::ZP0, 3 },{ "CMP", &a::CMP, &a::ZP0, 3 },{ "DEC", &a::DEC, &a::ZP0, 5 },{ "???", &a::XXX, &a::IMP, 5 },{ "INY", &a::INY, &a::IMP, 2 },{ "CMP", &a::CMP, &a::IMM, 2 },{ "DEX", &a::DEX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 2 },{ "CPY", &a::CPY, &a::ABS, 4 },{ "CMP", &a::CMP, &a::ABS, 4 },{ "DEC", &a::DEC, &a::ABS, 6 },{ "???", &a::XXX, &a::IMP, 6 },
+		{ "BNE", &a::BNE, &a::REL, 2 },{ "CMP", &a::CMP, &a::IZY, 5 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "???", &a::NOP, &a::IMP, 4 },{ "CMP", &a::CMP, &a::ZPX, 4 },{ "DEC", &a::DEC, &a::ZPX, 6 },{ "???", &a::XXX, &a::IMP, 6 },{ "CLD", &a::CLD, &a::IMP, 2 },{ "CMP", &a::CMP, &a::ABY, 4 },{ "NOP", &a::NOP, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 7 },{ "???", &a::NOP, &a::IMP, 4 },{ "CMP", &a::CMP, &a::ABX, 4 },{ "DEC", &a::DEC, &a::ABX, 7 },{ "???", &a::XXX, &a::IMP, 7 },
+		{ "CPX", &a::CPX, &a::IMM, 2 },{ "SBC", &a::SBC, &a::IZX, 6 },{ "???", &a::NOP, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "CPX", &a::CPX, &a::ZP0, 3 },{ "SBC", &a::SBC, &a::ZP0, 3 },{ "INC", &a::INC, &a::ZP0, 5 },{ "???", &a::XXX, &a::IMP, 5 },{ "INX", &a::INX, &a::IMP, 2 },{ "SBC", &a::SBC, &a::IMM, 2 },{ "NOP", &a::NOP, &a::IMP, 2 },{ "???", &a::SBC, &a::IMP, 2 },{ "CPX", &a::CPX, &a::ABS, 4 },{ "SBC", &a::SBC, &a::ABS, 4 },{ "INC", &a::INC, &a::ABS, 6 },{ "???", &a::XXX, &a::IMP, 6 },
+		{ "BEQ", &a::BEQ, &a::REL, 2 },{ "SBC", &a::SBC, &a::IZY, 5 },{ "???", &a::XXX, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 8 },{ "???", &a::NOP, &a::IMP, 4 },{ "SBC", &a::SBC, &a::ZPX, 4 },{ "INC", &a::INC, &a::ZPX, 6 },{ "???", &a::XXX, &a::IMP, 6 },{ "SED", &a::SED, &a::IMP, 2 },{ "SBC", &a::SBC, &a::ABY, 4 },{ "NOP", &a::NOP, &a::IMP, 2 },{ "???", &a::XXX, &a::IMP, 7 },{ "???", &a::NOP, &a::IMP, 4 },{ "SBC", &a::SBC, &a::ABX, 4 },{ "INC", &a::INC, &a::ABX, 7 },{ "???", &a::XXX, &a::IMP, 7 },
+	};
+}
+
+cpu6502::~cpu6502() {
+
+}
+
+// Flag Access
+uint8_t cpu6502::getFlag(flags6502 f) {
+    return ((f & status) > 0) ? 1 : 0;
+}
+
+void cpu6502::setFlag(flags6502 f, bool v) {
+    if(v == 1) {
+        status |= f;
+    } else {
+        status &= ~f;
+    }
+}
+
+// Bus Connectivity
+uint8_t cpu6502::read(uint16_t a) {
+    return bus->read(a, false);
+}
+
+void cpu6502::write(uint16_t a, uint8_t d) {
+    bus->write(a, d);
+}
+
+// External Inputs
+void cpu6502::reset() {
+    absAdd = 0xFFFC;
+    uint16_t lo = read(absAdd + 0);
+    uint16_t hi = read(absAdd + 1);
+
+    pc = (hi << 8) | lo;
+    status = 0x00 | U;
+    stkp = 0xFD;
+    a = 0x00;
+    x = 0x00;
+    y = 0x00;
+
+    absAdd = 0x0000;
+    relAdd = 0x0000;
+    fetched = 0x00;
+
+    cycles = 8;
+}
+
+void cpu6502::irq() {
+    if(getFlag(I) == 0) {
+        uint16_t hi = (pc << 8) & 0x00FF;
+        uint16_t lo = pc & 0x00FF;
+        write(0x0100 + stkp, hi);
+        stkp--;
+        write(0x0100 + stkp, lo);
+        stkp--;
+
+        setFlag(I, 1);
+        setFlag(B, 0);
+        setFlag(U, 1);
+        write(0x0100 + stkp, status);
+        stkp--;
+
+        absAdd = 0xFFFE;
+        hi = absAdd + 1;
+        lo = absAdd +0;
+        pc = hi << 8 | lo;
+
+        cycles = 7;
+    }
+}
+
+void cpu6502::nmi() {
+    uint16_t hi = (pc << 8) & 0x00FF;
+    uint16_t lo = pc & 0x00FF;
+    write(0x0100 + stkp, hi);
+    stkp--;
+    write(0x0100 + stkp, lo);
+    stkp--;
+
+    setFlag(I, 1);
+    setFlag(B, 0);
+    setFlag(U, 1);
+    write(0x0100 + stkp, status);
+    stkp--;
+
+    absAdd = 0xFFFA;
+    hi = absAdd + 1;
+    lo = absAdd +0;
+    pc = hi << 8 | lo;
+
+    cycles = 8;
+}
+
+void cpu6502::clock() {
+    if(cycles == 0) {
+        opcode = read(pc);
+
+// Log
+#ifdef LOGMODE
+		uint16_t log_pc = pc;
+#endif
+
+        
+        setFlag(U, 1);
+        pc++;
+        cycles = lookup[opcode].cycles;
+        uint8_t extra_cycle1 = (this->*lookup[opcode].addrmode)();
+        uint8_t extra_cycle2 = (this->*lookup[opcode].operate)();
+
+        cycles += (extra_cycle1 & extra_cycle2);
+        setFlag(U, 1);
+
+// Log
+#ifdef LOGMODE
+		if (logfile == nullptr)	logfile = fopen("cpu6502.txt", "wt");
+		if (logfile != nullptr) {
+			fprintf(logfile, "%10d:%02d PC:%04X %s A:%02X X:%02X Y:%02X %s%s%s%s%s%s%s%s STKP:%02X\n",
+				clock_count, 0, log_pc, "XXX", a, x, y,	
+				GetFlag(N) ? "N" : ".",	GetFlag(V) ? "V" : ".",	GetFlag(U) ? "U" : ".",	
+				GetFlag(B) ? "B" : ".",	GetFlag(D) ? "D" : ".",	GetFlag(I) ? "I" : ".",	
+				GetFlag(Z) ? "Z" : ".",	GetFlag(C) ? "C" : ".",	stkp);
+		}
+#endif
+
+    }
+    clock_count++;
+    cycles--;
+}
+
+bool cpu6502::complete() {
+    return cycles==0;
+}
+
+// Addressing Modes
+
+uint8_t cpu6502::IMP() {
+    fetched = a;
+    return 0;
+}
+
+uint8_t cpu6502::IMM() {
+    absAdd = pc++;
+    return 0;
+}
+
+uint8_t cpu6502::ZP0() {
+    absAdd = read(pc);
+    pc++;
+    absAdd &= 0x00FF;
+    return 0;
+}
+
+uint8_t cpu6502::ZPX() {
+    absAdd = read(pc) + x;
+    pc++;
+    absAdd &= 0x00FF;
+    return 0;
+}
+
+uint8_t cpu6502::ZPY() {
+    absAdd = read(pc) + y;
+    pc++;
+    absAdd &= 0x00FF;
+    return 0;
+}
+
+uint8_t cpu6502::REL() {
+	relAdd = read(pc);
+	pc++;
+	if (relAdd & 0x80){
+		relAdd |= 0xFF00;
+    }
+	return 0;
+}
+
+uint8_t cpu6502::ABS() {
+    uint16_t lo = read(pc);
+    pc++;
+    uint16_t hi = read(pc);
+    pc++;
+
+    absAdd = hi << 8 | lo;
+    return 0;
+}
+
+uint8_t cpu6502::ABX() {
+    uint16_t lo = read(pc);
+    pc++;
+    uint16_t hi = read(pc);
+    pc++;
+    absAdd = hi << 8 | lo;
+    absAdd += x;
+
+    if((absAdd & 0xFF00) != (hi<<8)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+uint8_t cpu6502::ABY() {
+    uint16_t lo = read(pc);
+    pc++;
+    uint16_t hi = read(pc);
+    pc++;
+    absAdd = hi << 8 | lo;
+    absAdd += y;
+
+    if((absAdd & 0xFF00) != (hi<<8)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+uint8_t cpu6502::IND() {
+    uint16_t lo_ptr = read(pc);
+    pc++;
+    uint16_t hi_ptr = read(pc);
+    pc++;
+
+    uint16_t ptr = (hi_ptr << 8) | lo_ptr;
+
+    if(lo_ptr == 0x00FF) {
+        absAdd = read(ptr & 0xFF00) << 8 | read(ptr + 0);
+    } else {
+        absAdd = read(ptr + 1) << 8 | read(ptr + 0);
+    }
+    return 0;
+}
+
+uint8_t cpu6502::IZX() {
+    uint16_t add = read(pc);
+    pc++;
+
+    uint16_t lo = read((uint16_t)(add + (uint16_t)x) & 0x00FF);
+    uint16_t hi = read((uint16_t)(add + (uint16_t)x + 1) & 0x00FF);
+
+    absAdd = hi << 8 | lo;
+    return 0;
+}
+
+uint8_t cpu6502::IZY() {
+    uint16_t add = read(pc);
+    pc++;
+
+    uint16_t lo = read(add & 0x00FF);
+    uint16_t hi = read((add+1) & 0x00FF);
+
+    absAdd = hi << 8 | lo;
+    absAdd += y;
+
+    if((absAdd & 0xFF00) != (hi<<8)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+// Opcodes
+
