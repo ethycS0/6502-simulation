@@ -52,7 +52,7 @@ void cpu6502::write(uint16_t a, uint8_t d) {
 }
 
 uint8_t cpu6502::fetch() {
-    if(!(lookup[opcode].addrmode == cpu6502::IMP)) {
+    if(!(lookup[opcode].addrmode == &cpu6502::IMP)) {
         fetched = read(absAdd);
     }
     return fetched;
@@ -616,7 +616,7 @@ uint8_t cpu6502::LDY() {
 
 uint8_t cpu6502::LSR() {
     
-    if(lookup[opcode].addrmode == cpu6502::IMP) {
+    if(lookup[opcode].addrmode == &cpu6502::IMP) {
         setFlag(C, (a & 0x0001));
         setFlag(N, a & 0x0080);
         setFlag(Z, a == 0x0000);
@@ -685,7 +685,7 @@ uint8_t cpu6502::PLP() {
 
 uint8_t cpu6502::ROL() {
     fetch();
-    if(lookup[opcode].addrmode == cpu6502::IMP) {
+    if(lookup[opcode].addrmode == &cpu6502::IMP) {
         fetched = a;
     }
     temp = getFlag(C);
@@ -694,7 +694,7 @@ uint8_t cpu6502::ROL() {
     setFlag(N, fetched & 0x80);
     setFlag(Z, fetched == 0x00);
     
-    if(lookup[opcode].addrmode == cpu6502::IMP) {
+    if(lookup[opcode].addrmode == &cpu6502::IMP) {
         a = fetched;
     } else {
         write(absAdd, fetched);
@@ -704,7 +704,7 @@ uint8_t cpu6502::ROL() {
 
 uint8_t cpu6502::ROR() {
     fetch();
-    if(lookup[opcode].addrmode == cpu6502::IMP) {
+    if(lookup[opcode].addrmode == &cpu6502::IMP) {
         fetched = a;
     }
     temp = getFlag(C);
@@ -713,7 +713,7 @@ uint8_t cpu6502::ROR() {
     setFlag(N, fetched & 0x80);
     setFlag(Z, fetched == 0x00);
     
-    if(lookup[opcode].addrmode == cpu6502::IMP) {
+    if(lookup[opcode].addrmode == &cpu6502::IMP) {
         a = fetched;
     } else {
         write(absAdd, fetched);
