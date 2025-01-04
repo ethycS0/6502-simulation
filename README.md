@@ -1,18 +1,33 @@
-# NES Emulator
 
-## Introduction
-A few months ago, the Elden Ring DLC dropped, and as a huge fan of FromSoftware games, I was all over it. I’ve thoroughly enjoyed Elden Ring and Sekiro, but there’s always been one game on my list: Bloodborne. Unfortunately, since I don’t own a PlayStation, I haven’t been able to play it. That’s what initially got me looking into emulators. I was amazed by the impressive development progress on the ShadPS4 emulator, and it sparked my interest in learning how to build emulators myself.
-
-This NES emulator is my first project to dip my toes into emulator development. It’s both a personal project and a way to showcase my skills as a low-level developer during my undergraduate journey.
+# 6502 Microprocessor Simulation
 
 ## Project Overview
-This project aims to emulate the NES (Nintendo Entertainment System) in C++. While I’m following various resources to learn and implement this emulator, I am focusing on gaining a deep understanding of system architecture, CPU design (6502), and memory management. I’m not developing my own engine for display at the moment; instead, I am using the **olcPixelGameEngine** by OneLoneCoder for visualization purposes. In the future, I plan on transitioning to **SDL** for better control and flexibility.
+
+This project is a self-learning initiative to simulate the 6502 microprocessor using C++. The 6502 microprocessor, known for its role in the NES and other classic systems, serves as an ideal starting point for understanding low-level simulation and emulator development. While this project currently focuses on simulating the 6502, the long-term goal is to expand it into a full NES emulator.
+
+### Current State
+- **6502 Simulation:** Implemented basic functionalities of the 6502 microprocessor.
+- **Visualization:** Using the [olcPixelGameEngine](https://github.com/OneLoneCoder/olcPixelGameEngine) to display registers and illustrate how the simulator works.
+- **Future Plans:** Transitioning the visualization to SDL for more flexibility and better integration with future goals.
+
+### Motivation
+
+As a fan of *Elden Ring* and *Sekiro*, I wanted to play *Bloodborne* on my PC, but it is not officially available. During my search, I discovered [ShadPS4](https://github.com/ShadPS4), an ambitious PS4 emulator in development aimed at running games like *Bloodborne*. Inspired by the idea of contributing to such a project but realizing I lacked the foundational knowledge in emulator development, I decided to create this project to dip my toes into simulation and emulation.
 
 ### Features
-- **CPU Emulation**: Based on the 6502 processor, implementing opcodes and addressing modes as they appear in the NES architecture.
-- **Memory Management**: Correct handling of memory mapping, including the PPU, APU, and cartridge data.
-- **Basic Display**: Using olcPixelGameEngine for rendering.
-- **Planned Features**: Audio processing, input handling, and transition to SDL for more advanced rendering capabilities.
+- **6502 CPU Simulation:** A general-purpose 6502 CPU implementation.
+- **Register Display:** View the internal registers in real-time using the olcPixelGameEngine.
+- **Instruction Execution:** Execute and test basic 6502 instructions in a simulated environment.
 
-### Current Progress
-The project is still in its early stages, with primary focus on the CPU implementation and ensuring correct instruction handling. Progress is ongoing as I continue to work on refining the 6502 CPU, memory mapping, and eventually, the display.
+### Future Goals
+1. Expand the 6502 simulator into a complete NES emulator.
+2. Transition from olcPixelGameEngine to SDL for enhanced UI capabilities.
+3. Learn advanced emulator development concepts to contribute to larger projects.
+
+## Why 6502?
+
+The 6502 microprocessor is both simple and iconic, making it a perfect starting point for emulator enthusiasts. Its role in the NES and other vintage systems makes it an essential stepping stone for understanding more complex systems.
+
+---
+
+This project represents my first steps into the fascinating world of emulator and simulation development. While still a work in progress, I am excited to continue exploring and learning!
