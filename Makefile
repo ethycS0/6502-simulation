@@ -5,7 +5,7 @@ LDFLAGS = -lX11 -lGL -lpthread -lpng -lstdc++fs
 SRCS = src/main.cpp src/bus.cpp src/cpu.cpp
 OBJS = $(SRCS:.cpp=.o)
 
-TARGET = nes_emulator
+TARGET = 6502_sim
 
 all: $(TARGET)
 

@@ -1,163 +1,161 @@
-#include<iostream>
-#include<sstream>
+#include <chrono>
+#include <fcntl.h>
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <termios.h>
+#include <thread>
+#include <unistd.h>
 
-#include"bus.h"
-#include"cpu.h"
-#define OLC_PGE_APPLICATION
-#include"olcPixelGameEngine.h"
+#include "bus.h"
+#include "cpu.h"
 
-class Demo : public olc::PixelGameEngine {
-public:
-    Demo() {sAppName = "6502 Demonstration";}
+Bus system_6502;
+std::map<uint16_t, std::string> asm_map;
 
-    Bus nes;
-    std::map<uint16_t, std::string> mapAsm;
+std::string hex(uint32_t n, uint8_t d) {
+    std::string s(d, '0');
+    for (int i = d - 1; i >= 0; i--, n >>= 4)
+        s[i] = "0123456789ABCDEF"[n & 0xF];
+    return s;
+}
 
-    std::string hex(uint32_t n, uint8_t d) {
-        std::string s(d, '0');
-        for(int i = d - 1; i >=0; i--, n>>=4)
-            s[i] = "0123456789ABCDEF"[n & 0xF];
-        return s;
-    };
+void clear_screen() {
+    std::cout << "\033[2J\033[1;1H"; // ANSI escape code to clear screen
+}
 
-    
-	void DrawRam(int x, int y, uint16_t nAddr, int nRows, int nColumns) {
-		int nRamX = x, nRamY = y;
-		for (int row = 0; row < nRows; row++) {
-			std::string sOffset = "$" + hex(nAddr, 4) + ":";
-			for (int col = 0; col < nColumns; col++) {
-				sOffset += " " + hex(nes.read(nAddr, true), 2);
-				nAddr += 1;
-			}
-			DrawString(nRamX, nRamY, sOffset);
-			nRamY += 10;
-		}
-	}
+void display_ram(uint16_t address, int rows, int columns) {
+    for (int row = 0; row < rows; row++) {
+        std::cout << "$" << hex(address, 4) << ":";
+        for (int col = 0; col < columns; col++) {
+            std::cout << " " << hex(system_6502.read(address, true), 2);
+            address += 1;
+        }
+        std::cout << "\n";
+    }
+}
 
-	void DrawCpu(int x, int y) {
-		std::string status = "STATUS: ";
-		DrawString(x , y , "STATUS:", olc::WHITE);
-		DrawString(x  + 64, y, "N", nes.cpu.status & cpu6502::N ? olc::GREEN : olc::RED);
-		DrawString(x  + 80, y , "V", nes.cpu.status & cpu6502::V ? olc::GREEN : olc::RED);
-		DrawString(x  + 96, y , "-", nes.cpu.status & cpu6502::U ? olc::GREEN : olc::RED);
-		DrawString(x  + 112, y , "B", nes.cpu.status & cpu6502::B ? olc::GREEN : olc::RED);
-		DrawString(x  + 128, y , "D", nes.cpu.status & cpu6502::D ? olc::GREEN : olc::RED);
-		DrawString(x  + 144, y , "I", nes.cpu.status & cpu6502::I ? olc::GREEN : olc::RED);
-		DrawString(x  + 160, y , "Z", nes.cpu.status & cpu6502::Z ? olc::GREEN : olc::RED);
-		DrawString(x  + 178, y , "C", nes.cpu.status & cpu6502::C ? olc::GREEN : olc::RED);
-		DrawString(x , y + 10, "PC: $" + hex(nes.cpu.pc, 4));
-		DrawString(x , y + 20, "A: $" +  hex(nes.cpu.a, 2) + "  [" + std::to_string(nes.cpu.a) + "]");
-		DrawString(x , y + 30, "X: $" +  hex(nes.cpu.x, 2) + "  [" + std::to_string(nes.cpu.x) + "]");
-		DrawString(x , y + 40, "Y: $" +  hex(nes.cpu.y, 2) + "  [" + std::to_string(nes.cpu.y) + "]");
-		DrawString(x , y + 50, "Stack P: $" + hex(nes.cpu.stkp, 4));
-	}
+void display_cpu() {
+    std::cout << "STATUS: ";
+    std::cout << ((system_6502.cpu.status & cpu6502::N) ? "N" : "n") << " ";
+    std::cout << ((system_6502.cpu.status & cpu6502::V) ? "V" : "v") << " ";
+    std::cout << ((system_6502.cpu.status & cpu6502::U) ? "U" : "u") << " ";
+    std::cout << ((system_6502.cpu.status & cpu6502::B) ? "B" : "b") << " ";
+    std::cout << ((system_6502.cpu.status & cpu6502::D) ? "D" : "d") << " ";
+    std::cout << ((system_6502.cpu.status & cpu6502::I) ? "I" : "i") << " ";
+    std::cout << ((system_6502.cpu.status & cpu6502::Z) ? "Z" : "z") << " ";
+    std::cout << ((system_6502.cpu.status & cpu6502::C) ? "C" : "c") << "\n";
 
-	void DrawCode(int x, int y, int nLines) {
-		auto it_a = mapAsm.find(nes.cpu.pc);
-		int nLineY = (nLines >> 1) * 10 + y;
-		if (it_a != mapAsm.end()) {
-			DrawString(x, nLineY, (*it_a).second, olc::CYAN);
-			while (nLineY < (nLines * 10) + y) {
-				nLineY += 10;
-				if (++it_a != mapAsm.end()) {
-					DrawString(x, nLineY, (*it_a).second);
-				}
-			}
-		}
+    std::cout << "PC: $" << hex(system_6502.cpu.pc, 4) << "\n";
+    std::cout << "A:  $" << hex(system_6502.cpu.a, 2) << " [" << std::to_string(system_6502.cpu.a)
+              << "]\n";
+    std::cout << "X:  $" << hex(system_6502.cpu.x, 2) << " [" << std::to_string(system_6502.cpu.x)
+              << "]\n";
+    std::cout << "Y:  $" << hex(system_6502.cpu.y, 2) << " [" << std::to_string(system_6502.cpu.y)
+              << "]\n";
+    std::cout << "Stack P: $" << hex(system_6502.cpu.stkp, 4) << "\n";
+}
 
-		it_a = mapAsm.find(nes.cpu.pc);
-		nLineY = (nLines >> 1) * 10 + y;
-		if (it_a != mapAsm.end()) {
-			while (nLineY > y) {
-				nLineY -= 10;
-				if (--it_a != mapAsm.end()) {
-					DrawString(x, nLineY, (*it_a).second);
-				}
-			}
-		}
-	}
+void display_code(uint16_t pc, int lines) {
+    auto it_a = asm_map.find(pc);
+    if (it_a == asm_map.end())
+        return;
 
-	bool OnUserCreate() {
-		// Load Program (assembled at https://www.masswerk.at/6502/assembler.html)
-		/*
-			*=$8000
-			LDX #10
-			STX $0000
-			LDX #3
-			STX $0001
-			LDY $0000
-			LDA #0
-			CLC
-			loop
-			ADC $0001
-			DEY
-			BNE loop
-			STA $0002
-			NOP
-			NOP
-			NOP
-		*/
-		
-		// Convert hex string into bytes for RAM
-		std::stringstream ss;
-		ss << "A2 0A 8E 00 00 A2 03 8E 01 00 AC 00 00 A9 00 18 6D 01 00 88 D0 FA 8D 02 00 EA EA EA";
-		uint16_t nOffset = 0x8000;
-		while (!ss.eof()) {
-			std::string b;
-			ss >> b;
-			nes.ram[nOffset++] = (uint8_t)std::stoul(b, nullptr, 16);
-		}
+    auto it = it_a;
+    for (int i = 0; i < lines / 2; i++) {
+        if (it == asm_map.begin())
+            break;
+        --it;
+    }
 
-		// Set Reset Vector
-		nes.ram[0xFFFC] = 0x00;
-		nes.ram[0xFFFD] = 0x80;
+    for (int i = 0; i < lines; i++) {
+        std::string line = it->second;
+        if (it->first == pc)
+            std::cout << "> ";
+        else
+            std::cout << "  ";
+        std::cout << line << "\n";
+        if (++it == asm_map.end())
+            break;
+    }
+}
 
-		// Dont forget to set IRQ and NMI vectors if you want to play with those
-				
-		// Extract dissassembly
-		mapAsm = nes.cpu.disassemble(0x0000, 0xFFFF);
+void load_program() {
+    std::stringstream ss;
+    ss << "A2 0A 8E 00 00 A2 03 8E 01 00 AC 00 00 A9 00 18 6D 01 00 88 D0 FA "
+          "8D 02 00 EA EA EA";
+    uint16_t offset = 0x8000;
+    while (!ss.eof()) {
+        std::string b;
+        ss >> b;
+        system_6502.ram[offset++] = (uint8_t)std::stoul(b, nullptr, 16);
+    }
 
-		// Reset
-		nes.cpu.reset();
-		return true;
-	}
+    system_6502.ram[0xFFFC] = 0x00;
+    system_6502.ram[0xFFFD] = 0x80;
 
-	bool OnUserUpdate(float fElapsedTime) {
-		Clear(olc::DARK_BLUE);
+    asm_map = system_6502.cpu.disassemble(0x0000, 0xFFFF);
+    system_6502.cpu.reset();
+}
 
+char get_char_nonblocking() {
+    struct termios oldt, newt;
+    char ch;
+    int oldf;
 
-		if (GetKey(olc::Key::SPACE).bPressed) {
-			do {
-				nes.cpu.clock();
-			} 
-			while (!nes.cpu.complete());
-		}
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO); // disable buffering
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
 
-		if (GetKey(olc::Key::R).bPressed)
-			nes.cpu.reset();
+    ch = getchar();
 
-		if (GetKey(olc::Key::I).bPressed)
-			nes.cpu.irq();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
 
-		if (GetKey(olc::Key::N).bPressed)
-			nes.cpu.nmi();
-
-		// Draw Ram Page 0x00		
-		DrawRam(2, 2, 0x0000, 16, 16);
-		DrawRam(2, 182, 0x8000, 16, 16);
-		DrawCpu(448, 2);
-		DrawCode(448, 72, 26);
-
-
-		DrawString(10, 370, "SPACE = Step Instruction    R = RESET    I = IRQ    N = NMI");
-
-		return true;
-	}
-};
+    return ch;
+}
 
 int main() {
-    Demo demo;
-    demo.Construct(680, 480, 2, 2);
-    demo.Start();
+    load_program();
+
+    while (true) {
+        clear_screen();
+
+        std::cout << "RAM @ 0x0000:\n";
+        display_ram(0x0000, 16, 16);
+
+        std::cout << "\nRAM @ 0x8000:\n";
+        display_ram(0x8000, 16, 16);
+
+        std::cout << "\nCPU STATE:\n";
+        display_cpu();
+
+        std::cout << "\nCODE:\n";
+        display_code(system_6502.cpu.pc, 10);
+
+        std::cout << "\n[SPACE] Step  [R] Reset  [I] IRQ  [N] NMI  [Q] Quit\n";
+
+        char key = 0;
+        while ((key = get_char_nonblocking()) == -1)
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        if (key == ' ') {
+            do {
+                system_6502.cpu.clock();
+            } while (!system_6502.cpu.complete());
+        } else if (key == 'r' || key == 'R') {
+            system_6502.cpu.reset();
+        } else if (key == 'i' || key == 'I') {
+            system_6502.cpu.irq();
+        } else if (key == 'n' || key == 'N') {
+            system_6502.cpu.nmi();
+        } else if (key == 'q' || key == 'Q') {
+            break;
+        }
+    }
+
     return 0;
 }
